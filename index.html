@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#22c55e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230d0f14'/><text x='50' y='62' text-anchor='middle' font-size='50' fill='%2322c55e'>¥</text></svg>">
+  <title>KAKEIBO Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Login Overlay -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card">
+      <div class="login-logo">¥ KAKEIBO</div>
+      <p class="login-sub">家族の家計簿ダッシュボード</p>
+      <button class="login-btn" id="loginBtn" onclick="signInWithGoogle()">
+        <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 010-9.18l-7.98-6.19a24.04 24.04 0 000 21.56l7.98-6.19z"/><path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Googleでログイン
+      </button>
+      <p class="login-offline" id="loginOffline"></p>
+    </div>
+  </div>
+
+  <div class="app">
+    <!-- Sidebar -->
+    <div class="sb">
+      <div class="sb-hd">
+        <div class="sb-logo"><span class="sb-logo-tx">KAKEIBO</span><small>Household Dashboard</small></div>
+        <button class="sb-toggle" onclick="toggleSidebar()"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4L3 8L7 12"/><path d="M12 4L8 8L12 12"/></svg></button>
+      </div>
+      <div class="sb-user" id="sbUser"></div>
+      <div class="nav-i active" data-view="dashboard"><span class="nav-ic">📊</span><span class="nav-tx">ダッシュボード</span></div>
+      <div class="nav-i" data-view="sankey"><span class="nav-ic">🌊</span><span class="nav-tx">お金の流れ</span></div>
+      <div class="nav-i" data-view="trend"><span class="nav-ic">📈</span><span class="nav-tx">トレンド分析</span></div>
+      <div class="nav-i" data-view="settings"><span class="nav-ic">⚙️</span><span class="nav-tx">設定</span></div>
+      <div class="nav-sep"></div>
+      <div class="sb-bot">
+        <button class="sb-btn" id="csvBtn"><span class="nav-ic">📂</span><span class="nav-tx">CSV取込</span><input type="file" id="fileInput" accept=".csv" multiple></button>
+        <button class="sb-btn" id="exportBtn"><span class="nav-ic">💾</span><span class="nav-tx">データ書出</span></button>
+        <button class="sb-btn" id="importBtn"><span class="nav-ic">📥</span><span class="nav-tx">データ読込</span><input type="file" id="importInput" accept=".json"></button>
+        <div class="sb-info" id="dbInfo">データ: 0ヶ月分</div>
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div class="mn">
+      <div class="top">
+        <h2 id="viewTitle">ダッシュボード</h2>
+        <div class="mnav" id="monthNav">
+          <button class="mbtn mnav-arrow" onclick="changeMonth(-1)"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2L4 6L8 10"/></svg></button>
+          <input type="month" id="monthPicker" class="month-picker" onchange="pickMonth(this.value)">
+          <button class="mbtn mnav-arrow" onclick="changeMonth(1)"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2L8 6L4 10"/></svg></button>
+        </div>
+      </div>
+
+      <!-- DASHBOARD -->
+      <div class="vw active" id="vw-dashboard">
+        <div class="kpi-r" id="kpiRow"></div>
+        <div class="g2">
+          <div class="pn">
+            <div class="pn-h">
+              <span class="pn-t"><div class="dot bg-gn"></div>収入内訳</span>
+            </div>
+            <div id="incPanel"></div>
+          </div>
+          <div class="pn">
+            <div class="pn-h">
+              <span class="pn-t"><div class="dot bg-rd"></div>支出内訳</span>
+              <span class="hint">クリックで明細表示</span>
+            </div>
+            <div id="expPanel"></div>
+          </div>
+        </div>
+        <div class="pn">
+          <div class="pn-h">
+            <span class="pn-t"><div class="dot bg-bl"></div>月次推移と年間集計</span>
+            <div class="trend-ctrl" id="trendCtrl"></div>
+          </div>
+          <svg id="trendSvg" class="svg-chart" viewBox="0 0 780 260"></svg>
+          <div class="cleg">
+            <div class="cleg-i"><div class="cleg-d bg-gn"></div>収入</div>
+            <div class="cleg-i"><div class="cleg-d bg-rd"></div>支出</div>
+            <div class="cleg-i"><div class="cleg-d bg-bl circle"></div>残高</div>
+          </div>
+          <div class="tbl-wrap"><table class="mt" id="yearTable"></table></div>
+        </div>
+      </div>
+
+      <!-- SANKEY -->
+      <div class="vw" id="vw-sankey">
+        <div class="pn">
+          <div class="pn-h"><span class="pn-t"><div class="dot bg-gn"></div>お金の流れ（収入 → 保有金融機関 → 大項目）</span></div>
+          <svg id="sankeySvg" class="svg-chart"></svg>
+        </div>
+      </div>
+
+      <!-- TREND -->
+      <div class="vw" id="vw-trend">
+        <div class="g2">
+          <div class="pn">
+            <div class="pn-h"><span class="pn-t"><div class="dot bg-am"></div>固定費 vs 変動費 推移</span></div>
+            <svg id="fvSvg" class="svg-chart" viewBox="0 0 440 200"></svg>
+            <div class="cleg">
+              <div class="cleg-i"><div class="cleg-d bg-am"></div>固定費</div>
+              <div class="cleg-i"><div class="cleg-d bg-rd"></div>変動費</div>
+            </div>
+          </div>
+          <div class="pn">
+            <div class="pn-h"><span class="pn-t"><div class="dot bg-pp"></div>貯蓄率 推移</span></div>
+            <svg id="savSvg" class="svg-chart" viewBox="0 0 440 200"></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="vw" id="vw-settings">
+        <div class="pn">
+          <div class="pn-h"><span class="pn-t"><div class="dot bg-cn"></div>予算設定</span></div>
+          <div id="budgetCfg"></div>
+        </div>
+        <div class="pn">
+          <div class="pn-h"><span class="pn-t"><div class="dot bg-am"></div>固定費 / 変動費 分類</span></div>
+          <div id="catCfg"></div>
+        </div>
+        <div class="pn">
+          <div class="pn-h"><span class="pn-t"><div class="dot bg-bl"></div>表示設定</span></div>
+          <div class="set-row">
+            <label class="set-label">テーマ</label>
+            <div class="set-opts" id="themeToggle"></div>
+          </div>
+          <div class="set-row">
+            <label class="set-label">文字サイズ</label>
+            <div class="set-opts" id="fontSizeToggle"></div>
+          </div>
+        </div>
+        <div class="pn">
+          <div class="pn-h"><span class="pn-t"><div class="dot bg-rd"></div>データ管理</span></div>
+          <button class="sb-btn btn-danger" onclick="if(confirm('全データを削除しますか？'))clearAllData()">🗑 全データ削除</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-hd">
+        <h3 id="modalTitle">明細</h3>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Target Month Modal -->
+  <div class="modal-bg" id="targetMonthModal" onclick="if(event.target===this)closeTargetMonthModal()">
+    <div class="modal">
+      <div class="modal-hd">
+        <h3>📥 CSV取り込み - 対象月の確認</h3>
+        <button class="modal-close" onclick="closeTargetMonthModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="tm-info">
+          <p class="tm-info-file">ファイル: <strong id="importFileName"></strong></p>
+          <p class="tm-info-desc">このCSVファイルを取り込む対象月を選択してください。</p>
+        </div>
+        <div class="tm-field">
+          <label>対象年月</label>
+          <input type="month" id="targetMonthInput" class="tm-input">
+        </div>
+        <div class="tm-actions">
+          <button class="tm-btn tm-btn-cancel" onclick="closeTargetMonthModal()">キャンセル</button>
+          <button class="tm-btn tm-btn-ok" onclick="confirmTargetMonth()">取り込み実行</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Firebase SDK (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
