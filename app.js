@@ -22,6 +22,16 @@ const F = n => `${Number(n).toLocaleString()}`;
 const FY = n => `¥${F(n)}`;
 
 /**
+ * HTMLエスケープ（XSS対策）
+ * @param {string} str - エスケープする文字列
+ * @returns {string} エスケープ済み文字列
+ */
+function escapeHtml(str) {
+  if (typeof str !== 'string') return str;
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/**
  * トースト通知を表示
  * @param {string} msg - 表示するメッセージ
  * @param {number} duration - 表示時間（ミリ秒、デフォルト: 2500）
@@ -567,7 +577,7 @@ function renderIncome() {
   let h = '';
   Object.entries(det).sort((a, b) => b[1] - a[1]).forEach(([k, v]) => {
     const pct = total > 0 ? ((v / total) * 100).toFixed(1) : '0';
-    h += `<div class="inc-rw"><span class="c" style="color:var(--t2)">${k}</span><span class="n" style="color:var(--gn)">${F(v)}</span><span class="n" style="color:var(--t3)">${pct}%</span></div><div class="inc-bar"><div class="inc-bar-f" style="width:${total > 0 ? v / total * 100 : 0}%"></div></div>`;
+    h += `<div class="inc-rw"><span class="c" style="color:var(--t2)">${escapeHtml(k)}</span><span class="n" style="color:var(--gn)">${F(v)}</span><span class="n" style="color:var(--t3)">${pct}%</span></div><div class="inc-bar"><div class="inc-bar-f" style="width:${total > 0 ? v / total * 100 : 0}%"></div></div>`;
   });
   h += `<div class="inc-rw" style="font-weight:700;border-top:1.5px solid var(--bd);padding-top:4px;margin-top:4px"><span>合計</span><span class="n" style="color:var(--gn)">${F(total)}</span><span></span></div>`;
   document.getElementById('incPanel').innerHTML = h;
@@ -595,7 +605,7 @@ function renderExpense() {
   const makeRows = arr => arr.map(([k, v]) => {
     const b = BUDGETS[k] || 0;
     const diff = b - v;
-    return `<div class="exp-rw" onclick="showDetail('${k}')"><span class="c">${k} 🔍</span><span class="n">${b ? F(b) : '—'}</span><span class="n" style="color:var(--tx)">${F(v)}</span><span class="${diff >= 0 ? 'dp' : 'dn'}">${diff >= 0 ? '+' : ''}${F(diff)}</span></div>`;
+    return `<div class="exp-rw" onclick="showDetail('${escapeHtml(k)}')"><span class="c">${escapeHtml(k)} 🔍</span><span class="n">${b ? F(b) : '—'}</span><span class="n" style="color:var(--tx)">${F(v)}</span><span class="${diff >= 0 ? 'dp' : 'dn'}">${diff >= 0 ? '+' : ''}${F(diff)}</span></div>`;
   }).join('');
 
   const fT = fixedE.reduce((s, [, v]) => s + v, 0); // 固定費合計
@@ -625,7 +635,7 @@ async function showDetail(cat) {
 
   let h = `<div class="detail-row header"><span>日付</span><span>内容</span><span style="text-align:right">金額</span><span>金融機関</span></div>`;
   txns.sort((a, b) => a.date.localeCompare(b.date)).forEach(t => {
-    h += `<div class="detail-row"><span>${t.date.replace(/^\d{4}\//, '')}</span><span>${t.content}</span><span class="amt" style="color:var(--rd)">${F(Math.abs(t.amount))}</span><span class="acct">${t.account}</span></div>`;
+    h += `<div class="detail-row"><span>${escapeHtml(t.date.replace(/^\d{4}\//, ''))}</span><span>${escapeHtml(t.content)}</span><span class="amt" style="color:var(--rd)">${F(Math.abs(t.amount))}</span><span class="acct">${escapeHtml(t.account)}</span></div>`;
   });
   h += `<div class="detail-total"><span>${txns.length}件</span><span style="color:var(--rd)">${FY(total)}</span></div>`;
 
@@ -661,7 +671,7 @@ async function showIncomeDetail(dk) {
   const total = txns.reduce((s, t) => s + t.amount, 0);
   let h = `<div class="detail-row header"><span>日付</span><span>内容</span><span style="text-align:right">金額</span><span>金融機関</span></div>`;
   txns.sort((a, b) => a.date.localeCompare(b.date)).forEach(t => {
-    h += `<div class="detail-row"><span>${t.date.replace(/^\d{4}\//, '')}</span><span>${t.content}</span><span class="amt" style="color:var(--gn)">${F(t.amount)}</span><span class="acct">${t.account}</span></div>`;
+    h += `<div class="detail-row"><span>${escapeHtml(t.date.replace(/^\d{4}\//, ''))}</span><span>${escapeHtml(t.content)}</span><span class="amt" style="color:var(--gn)">${F(t.amount)}</span><span class="acct">${escapeHtml(t.account)}</span></div>`;
   });
   h += `<div class="detail-total"><span>${txns.length}件</span><span style="color:var(--gn)">${FY(total)}</span></div>`;
 
@@ -692,13 +702,13 @@ async function showInstitutionDetail(acc) {
   if (incomeTxns.length) {
     h += `<div style="font-size:12px;font-weight:700;padding:6px 0 2px;color:var(--gn)">収入</div>`;
     incomeTxns.sort((a, b) => a.date.localeCompare(b.date)).forEach(t => {
-      h += `<div class="detail-row"><span>${t.date.replace(/^\d{4}\//, '')}</span><span>${t.content}</span><span class="amt" style="color:var(--gn)">${F(t.amount)}</span><span class="acct">${t.subcategory}</span></div>`;
+      h += `<div class="detail-row"><span>${escapeHtml(t.date.replace(/^\d{4}\//, ''))}</span><span>${escapeHtml(t.content)}</span><span class="amt" style="color:var(--gn)">${F(t.amount)}</span><span class="acct">${escapeHtml(t.subcategory)}</span></div>`;
     });
   }
   if (expenseTxns.length) {
     h += `<div style="font-size:12px;font-weight:700;padding:6px 0 2px;color:var(--rd)">支出</div>`;
     expenseTxns.sort((a, b) => a.date.localeCompare(b.date)).forEach(t => {
-      h += `<div class="detail-row"><span>${t.date.replace(/^\d{4}\//, '')}</span><span>${t.content}</span><span class="amt" style="color:var(--rd)">${F(Math.abs(t.amount))}</span><span class="acct">${t.category}</span></div>`;
+      h += `<div class="detail-row"><span>${escapeHtml(t.date.replace(/^\d{4}\//, ''))}</span><span>${escapeHtml(t.content)}</span><span class="amt" style="color:var(--rd)">${F(Math.abs(t.amount))}</span><span class="acct">${escapeHtml(t.category)}</span></div>`;
     });
   }
 
@@ -1228,14 +1238,14 @@ function renderSankey() {
   // ノードを描画（クリックで明細表示）
   columns.forEach((col, ci) => col.forEach(nm => {
     const p = np[nm];
-    const enm = nm.replace(/'/g, "\\'");
+    const enm = escapeHtml(nm);
 
     if (ci === 0) {
       // 左列：収入源（クリック→収入明細）
       html += `<g style="cursor:pointer" onclick="showIncomeDetail('${enm}')">`;
       html += `<rect x="${p.x - 180}" y="${p.y - 2}" width="${180 + NW}" height="${Math.max(p.h, 2) + 18}" fill="transparent"/>`;
       html += `<rect x="${p.x}" y="${p.y}" width="${NW}" height="${Math.max(p.h, 2)}" rx="2" fill="var(--bd)" opacity="0.8"/>`;
-      html += `<text x="${p.x - 5}" y="${p.y + p.h / 2}" text-anchor="end" dominant-baseline="middle" fill="var(--t2)" font-size="10">${nm}</text>`;
+      html += `<text x="${p.x - 5}" y="${p.y + p.h / 2}" text-anchor="end" dominant-baseline="middle" fill="var(--t2)" font-size="10">${enm}</text>`;
       html += `<text x="${p.x - 5}" y="${p.y + p.h / 2 + 12}" text-anchor="end" fill="var(--t3)" font-size="8.5">${FY(nv[nm])}</text>`;
       html += `</g>`;
     } else if (ci === 2) {
@@ -1243,7 +1253,7 @@ function renderSankey() {
       html += `<g style="cursor:pointer" onclick="showDetail('${enm}')">`;
       html += `<rect x="${p.x}" y="${p.y - 2}" width="${NW + 150}" height="${Math.max(p.h, 2) + 18}" fill="transparent"/>`;
       html += `<rect x="${p.x}" y="${p.y}" width="${NW}" height="${Math.max(p.h, 2)}" rx="2" fill="var(--bd)" opacity="0.8"/>`;
-      html += `<text x="${p.x + NW + 5}" y="${p.y + p.h / 2}" text-anchor="start" dominant-baseline="middle" fill="var(--t2)" font-size="10">${nm}</text>`;
+      html += `<text x="${p.x + NW + 5}" y="${p.y + p.h / 2}" text-anchor="start" dominant-baseline="middle" fill="var(--t2)" font-size="10">${enm}</text>`;
       html += `<text x="${p.x + NW + 5}" y="${p.y + p.h / 2 + 12}" text-anchor="start" fill="var(--t3)" font-size="8.5">${FY(nv[nm])}</text>`;
       html += `</g>`;
     } else {
@@ -1251,7 +1261,7 @@ function renderSankey() {
       html += `<g style="cursor:pointer" onclick="showInstitutionDetail('${enm}')">`;
       html += `<rect x="${p.x - 45}" y="${p.y - 14}" width="${NW + 90}" height="${Math.max(p.h, 2) + 30}" fill="transparent"/>`;
       html += `<rect x="${p.x}" y="${p.y}" width="${NW}" height="${Math.max(p.h, 2)}" rx="2" fill="var(--bd)" opacity="0.8"/>`;
-      html += `<text x="${p.x + NW / 2}" y="${p.y - 4}" text-anchor="middle" fill="var(--tx)" font-size="9" font-weight="600">${nm}</text>`;
+      html += `<text x="${p.x + NW / 2}" y="${p.y - 4}" text-anchor="middle" fill="var(--tx)" font-size="9" font-weight="600">${enm}</text>`;
       html += `<text x="${p.x + NW / 2}" y="${p.y + p.h + 10}" text-anchor="middle" fill="var(--t3)" font-size="8">${FY(nv[nm])}</text>`;
       html += `</g>`;
     }
@@ -1325,7 +1335,8 @@ function renderSettings() {
   let bh = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">';
   allCats.forEach(k => {
     if (!BUDGETS[k]) BUDGETS[k] = 0;
-    bh += `<div style="background:var(--s2);border-radius:5px;padding:8px"><label style="font-size:9px;color:var(--t2);display:block;margin-bottom:3px">${k}</label><input type="number" value="${BUDGETS[k]}" onchange="BUDGETS['${k}']=parseInt(this.value)||0;saveConfig();renderAll()" style="width:100%;background:var(--s3);border:1px solid var(--bd);color:var(--tx);padding:4px 6px;border-radius:4px;font-size:11px;font-family:inherit"></div>`;
+    const ek = escapeHtml(k);
+    bh += `<div style="background:var(--s2);border-radius:5px;padding:8px"><label style="font-size:9px;color:var(--t2);display:block;margin-bottom:3px">${ek}</label><input type="number" value="${BUDGETS[k]}" onchange="BUDGETS['${ek}']=parseInt(this.value)||0;saveConfig();renderAll()" style="width:100%;background:var(--s3);border:1px solid var(--bd);color:var(--tx);padding:4px 6px;border-radius:4px;font-size:11px;font-family:inherit"></div>`;
   });
   bh += '</div>';
   document.getElementById('budgetCfg').innerHTML = bh;
@@ -1334,7 +1345,8 @@ function renderSettings() {
   let ch = '<div style="display:flex;flex-wrap:wrap;gap:5px">';
   allCats.forEach(k => {
     const isF = FIXED_CATS.has(k);
-    ch += `<button style="padding:4px 10px;border-radius:14px;font-size:10px;cursor:pointer;border:1px solid ${isF ? 'var(--am)' : 'var(--bd)'};background:${isF ? 'rgba(245,158,11,.12)' : 'var(--s3)'};color:${isF ? 'var(--am)' : 'var(--t2)'};font-family:inherit" onclick="toggleFixed('${k}')">${k} ${isF ? '固' : '変'}</button>`;
+    const ek2 = escapeHtml(k);
+    ch += `<button style="padding:4px 10px;border-radius:14px;font-size:10px;cursor:pointer;border:1px solid ${isF ? 'var(--am)' : 'var(--bd)'};background:${isF ? 'rgba(245,158,11,.12)' : 'var(--s3)'};color:${isF ? 'var(--am)' : 'var(--t2)'};font-family:inherit" onclick="toggleFixed('${ek2}')">${ek2} ${isF ? '固' : '変'}</button>`;
   });
   ch += '</div><p style="margin-top:6px;font-size:9px;color:var(--t3)">クリックで固定費⇔変動費を切り替え</p>';
   document.getElementById('catCfg').innerHTML = ch;
@@ -1785,28 +1797,67 @@ async function importData(file) {
   const text = await file.text();
   const data = JSON.parse(text);
 
-  if (data.months) {
-    for (const m of data.months) await dbPut('months', m);
+  if (!data || typeof data !== 'object') {
+    toast('⚠️ 無効なデータ形式です');
+    return;
   }
-  if (data.transactions) {
-    if (useFirestore && currentUser) {
-      await fsBatchWrite(fsPath('transactions'), data.transactions);
-    } else {
-      const tx = db.transaction('transactions', 'readwrite');
-      const st = tx.objectStore('transactions');
-      data.transactions.forEach(t => st.put(t));
-      await new Promise(r => { tx.oncomplete = r });
+
+  // 月データの検証・インポート
+  let monthCount = 0;
+  if (Array.isArray(data.months)) {
+    for (const m of data.months) {
+      if (!m || typeof m !== 'object') continue;
+      if (typeof m.month !== 'string' || !/^\d{4}\/\d{2}$/.test(m.month)) continue;
+      if (typeof m.income !== 'number') continue;
+      await dbPut('months', m);
+      monthCount++;
     }
   }
-  if (data.config) {
-    BUDGETS = data.config.budgets || {};
-    FIXED_CATS = new Set(data.config.fixed || []);
+
+  // 取引データの検証・インポート
+  if (Array.isArray(data.transactions)) {
+    const validTxns = data.transactions.filter(t => {
+      if (!t || typeof t !== 'object') return false;
+      if (typeof t.month !== 'string') return false;
+      // 文字列フィールドの型チェックと長さ制限
+      for (const f of ['content', 'account', 'category', 'subcategory', 'date', 'month', 'monthCat']) {
+        if (t[f] !== undefined && typeof t[f] !== 'string') return false;
+        if (typeof t[f] === 'string' && t[f].length > 200) t[f] = t[f].substring(0, 200);
+      }
+      return true;
+    });
+
+    if (validTxns.length) {
+      if (useFirestore && currentUser) {
+        await fsBatchWrite(fsPath('transactions'), validTxns);
+      } else {
+        const tx = db.transaction('transactions', 'readwrite');
+        const st = tx.objectStore('transactions');
+        validTxns.forEach(t => st.put(t));
+        await new Promise(r => { tx.oncomplete = r });
+      }
+    }
+  }
+
+  // 設定データの検証・インポート
+  if (data.config && typeof data.config === 'object') {
+    if (data.config.budgets && typeof data.config.budgets === 'object') {
+      BUDGETS = {};
+      for (const [k, v] of Object.entries(data.config.budgets)) {
+        if (typeof k === 'string' && k.length <= 50 && typeof v === 'number') {
+          BUDGETS[k] = v;
+        }
+      }
+    }
+    if (Array.isArray(data.config.fixed)) {
+      FIXED_CATS = new Set(data.config.fixed.filter(f => typeof f === 'string' && f.length <= 50));
+    }
     await saveConfig();
   }
 
   await loadAllMonths();
   renderAll();
-  toast(`📥 ${data.months?.length || 0}ヶ月分を読み込みました`);
+  toast(`📥 ${monthCount}ヶ月分を読み込みました`);
 }
 
 /**
@@ -1861,7 +1912,7 @@ function signOutUser() {
 function updateUserUI(user) {
   const el = document.getElementById('sbUser');
   if (user) {
-    el.innerHTML = `<span class="sb-user-name">${user.displayName || user.email}</span><button class="sb-user-out" onclick="signOutUser()">ログアウト</button>`;
+    el.innerHTML = `<span class="sb-user-name">${escapeHtml(user.displayName || user.email)}</span><button class="sb-user-out" onclick="signOutUser()">ログアウト</button>`;
     el.classList.add('show');
   } else {
     el.innerHTML = '';
