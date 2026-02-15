@@ -425,6 +425,22 @@ function toggleSidebar() {
   document.querySelector('.app').classList.toggle('sb-collapsed');
 }
 
+/**
+ * モバイルメニューの開閉を切り替え
+ */
+function toggleMobileMenu() {
+  document.querySelector('.sb').classList.toggle('mob-open');
+  document.getElementById('sbOverlay').classList.toggle('show');
+}
+
+/**
+ * モバイルメニューを閉じる
+ */
+function closeMobileMenu() {
+  document.querySelector('.sb').classList.remove('mob-open');
+  document.getElementById('sbOverlay').classList.remove('show');
+}
+
 // ========================================
 // ナビゲーション制御
 // ========================================
@@ -450,6 +466,9 @@ document.querySelectorAll('.nav-i[data-view]').forEach(el => {
       settings: '設定'
     };
     document.getElementById('viewTitle').textContent = titles[el.dataset.view];
+
+    // モバイルメニューを閉じる
+    closeMobileMenu();
 
     // ビュー固有の描画処理
     if (el.dataset.view === 'sankey') renderSankey();
