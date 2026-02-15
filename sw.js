@@ -1,5 +1,5 @@
 const CACHE_NAME = 'kakeibo-v8';
-const ASSETS = ['./index.html', './manifest.json', './styles.css', './app.js', './firebase-config.js'];
+const ASSETS = ['./index.html', './manifest.json', './styles.css?v=8', './app.js?v=8', './firebase-config.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
